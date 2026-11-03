@@ -436,7 +436,9 @@ body.debug main *:not(video):not(canvas) { outline: 1px dashed color-mix(in srgb
 
   // ---------- Hydrogen Halos: play in place where embedding is allowed ----------
   // Paste the itch.io embed URL here (itch.io › Edit game › Distribute › Embed game).
-  const ITCH_EMBED = "https://itch.io/embed-upload/9803735?color=333333";
+  // Off for now: this Godot 4.1 build uses threads, which need cross-origin isolation headers GitHub Pages can't send.
+  // Re-export single-threaded (Godot 4.3+, Thread Support off), then set this to: https://itch.io/embed-upload/9803735?color=333333
+  const ITCH_EMBED = "";
   const embedHost = /(^|\.)emansemporium\.com$|\.github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname) || location.protocol === "file:";
   const hhPlay = document.getElementById("hhPlay");
   if (ITCH_EMBED && embedHost && hhPlay) {
