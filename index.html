@@ -188,6 +188,41 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(24px, 
 .cap .mono { font-size: 11.5px; }
 .tile.gone { display: none; }
 
+/* Featured playable game */
+.feature {
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 0;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+}
+.gamewin { display: grid; grid-template-rows: auto 1fr; background: #0c0d10; min-width: 0; }
+.gamewin .bar {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #17191e; color: #aeb4bf;
+  font: 500 11.5px var(--font-mono); letter-spacing: .03em; min-width: 0;
+}
+.gamewin .bar i { width: 9px; height: 9px; border-radius: 50%; background: #3a3e46; flex: none; }
+.gamewin .bar i:first-child { background: var(--accent); }
+.gamewin .bar span { margin-left: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gamewin .view { position: relative; aspect-ratio: 640 / 380; display: grid; place-items: center; overflow: hidden; }
+.gamewin .view img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55; filter: saturate(1.1); }
+.gamewin .view::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(255,255,255,.04) 0 1px, transparent 1px 3px); }
+.gamewin iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+.play {
+  position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 10px;
+  font: 700 16px var(--font-display); color: #111; background: var(--accent); border: 0; border-radius: 10px;
+  padding: 13px 20px; text-decoration: none; cursor: pointer; box-shadow: 0 10px 30px -10px rgba(0,0,0,.7);
+}
+.play:hover { filter: brightness(1.08); }
+@media (prefers-reduced-motion: no-preference) {
+  .play::before { content: ""; position: absolute; inset: -6px; border-radius: 14px; border: 2px solid var(--accent); opacity: .6; animation: pulse 1.8s ease-out infinite; }
+}
+@keyframes pulse { from { transform: scale(.96); opacity: .7; } to { transform: scale(1.12); opacity: 0; } }
+.feat-text { padding: 22px 24px; display: grid; gap: 12px; align-content: center; }
+.feat-text h3 { font-family: var(--font-display); font-weight: 700; font-size: 26px; margin: 0; letter-spacing: -.01em; }
+.feat-text p { margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 11px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; display: inline-flex; align-items: center; gap: 6px; }
+.feat-text .muted { color: var(--muted); font-size: 14.5px; }
+@media (max-width: 820px) { .feature { grid-template-columns: 1fr; } }
+
 /* Scroll reveal: always visible at rest, only eases into place */
 .reveal { opacity: .45; transform: translateY(18px); }
 .reveal.in { opacity: 1; transform: none; transition: opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1); }
@@ -317,6 +352,23 @@ body.debug main *:not(video):not(canvas) { outline: 1px dashed color-mix(in srgb
       <div class="t"><span class="stage">Level 2</span><h2 id="proto-h">Prototypes</h2></div>
       <p>Small builds and system tests in Godot and Unity. Tap any clip to open it in the viewer.</p>
     </div>
+    <article class="feature" aria-labelledby="hh-h">
+      <div class="gamewin">
+        <div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>hydrogen_halos · HTML5 · 10 levels</span></div>
+        <div class="view" id="hhView">
+          <img src="media/evolution.jpg" alt="">
+          <a class="play" id="hhPlay" href="https://silver-somma.itch.io/hh1" target="_blank" rel="noopener noreferrer">▶ Play Hydrogen Halos</a>
+        </div>
+      </div>
+      <div class="feat-text">
+        <span class="stage">Playable</span>
+        <h3 id="hh-h">Hydrogen Halos</h3>
+        <div class="chips"><span class="chip"><i class="dot godot"></i>Godot</span><span class="chip">Blender</span><span class="chip">Platformer</span><span class="chip">Prototype</span></div>
+        <p>A platformer prototype. The goal: make it through all 10 levels. It runs in the browser on itch.io.</p>
+        <p class="muted">The character evolution, ragdoll hit and collision bug clips below all come from building this game.</p>
+        <a href="https://silver-somma.itch.io/hh1" target="_blank" rel="noopener noreferrer">silver-somma.itch.io/hh1 ↗</a>
+      </div>
+    </article>
     <div class="tabs" id="tabs" role="group" aria-label="Filter prototypes by engine"></div>
     <div class="grid protos" id="protos"></div>
   </section>
@@ -348,10 +400,10 @@ body.debug main *:not(video):not(canvas) { outline: 1px dashed color-mix(in srgb
   const PROTOS = [
     { slug: "td-cannon", engine: "godot", title: "Tower defense", desc: "Path-following enemies, cannon towers and a gold economy.", len: 5.4 },
     { slug: "td-hits", engine: "godot", title: "Tower defense: hit feedback", desc: "Projectile impacts and enemy reactions in the same build.", len: 2.9 },
-    { slug: "evolution", engine: "godot", title: "Character evolution", desc: "A test character gaining parts, from a single block to a jet-powered rig.", len: 30.3 },
-    { slug: "ragdoll", engine: "godot", title: "Ragdoll hit", desc: "A character knocked into a ragdoll with a debris burst.", len: 2.3 },
-    { slug: "physics-swarm", engine: "godot", title: "Physics swarm", desc: "Hundreds of rigid bodies spawning and spreading across the floor.", len: 12.9 },
-    { slug: "no-collision", engine: "godot", title: "Collision bug", desc: "Captured while tracking down a body falling through geometry.", len: 4.2 },
+    { slug: "evolution", engine: "godot", title: "Character evolution", desc: "A test character gaining parts, from a single block to a jet-powered rig.", len: 30.3, from: "Hydrogen Halos" },
+    { slug: "ragdoll", engine: "godot", title: "Ragdoll hit", desc: "A character knocked into a ragdoll with a debris burst.", len: 2.3, from: "Hydrogen Halos" },
+    { slug: "no-collision", engine: "godot", title: "Collision bug", desc: "Captured while tracking down a body falling through geometry.", len: 4.2, from: "Hydrogen Halos" },
+    { slug: "physics-swarm", engine: "unity", title: "Physics swarm", desc: "Hundreds of rigid bodies spawning and spreading across the floor.", len: 12.9 },
     { slug: "board-game", engine: "unity", title: "Board game", desc: "Pieces moving across a grid board inside an arena.", len: 3.3 },
     { slug: "hover", engine: "unity", title: "Hover state", desc: "A pickup that reacts as the cursor passes over it.", len: 3.8 },
     { slug: "line-rendering", engine: "unity", title: "Line tool", desc: "Drawing a line from an object to the cursor.", len: 3.7 }
@@ -378,9 +430,24 @@ body.debug main *:not(video):not(canvas) { outline: 1px dashed color-mix(in srgb
         <video muted loop playsinline preload="none" poster="media/${it.slug}.jpg" aria-hidden="true"><source src="media/${it.slug}.mp4" type="video/mp4"></video>
         <span class="sel"></span>
       </div>
-      <div class="cap"><strong>${esc(it.title)}</strong><span>${esc(it.desc)}</span>${it.len ? `<span class="mono">loop · ${it.len}s</span>` : ""}</div>
+      <div class="cap"><strong>${esc(it.title)}</strong><span>${esc(it.desc)}</span>${it.len ? `<span class="mono">loop · ${it.len}s${it.from ? ` · from ${esc(it.from)}` : ""}</span>` : ""}</div>
     </button>`;
   document.getElementById("protos").innerHTML = PROTOS.map(p => tileHTML(p, "proto")).join("");
+
+  // ---------- Hydrogen Halos: play in place where embedding is allowed ----------
+  // Paste the itch.io embed URL here (itch.io › Edit game › Distribute › Embed game).
+  const ITCH_EMBED = "https://itch.io/embed-upload/9803735?color=333333";
+  const embedHost = /(^|\.)emansemporium\.com$|\.github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname) || location.protocol === "file:";
+  const hhPlay = document.getElementById("hhPlay");
+  if (ITCH_EMBED && embedHost && hhPlay) {
+    hhPlay.addEventListener("click", e => {
+      e.preventDefault();
+      const view = document.getElementById("hhView");
+      const f = document.createElement("iframe");
+      f.src = ITCH_EMBED; f.title = "Hydrogen Halos (playable)"; f.allow = "autoplay; fullscreen; gamepad"; f.allowFullscreen = true;
+      view.appendChild(f); hhPlay.remove(); f.focus();
+    });
+  }
   document.getElementById("modelGrid").innerHTML = MODELS.map(m => tileHTML(m, "model")).join("");
 
   // ---------- engine filter (with FLIP animation) ----------
@@ -481,7 +548,7 @@ body.debug main *:not(video):not(canvas) { outline: 1px dashed color-mix(in srgb
 
   // ---------- boot line ----------
   const boot = document.getElementById("boot");
-  const bootLines = ["> loading portfolio…", "> 9 prototypes · 11 models · 5 studios", "> ready."];
+  const bootLines = ["> loading portfolio…", "> 1 playable game · 9 prototypes · 11 models", "> ready."];
   if (!reduce) {
     let li = 0;
     const next = () => {
