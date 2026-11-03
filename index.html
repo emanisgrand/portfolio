@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>Emanuel Martinez</title>
+
+<meta name="description" content="Emanuel Martinez: game developer and QA engineer. Godot and Unity prototypes, low-poly models, and professional work.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: a quiet single column under a game-style HUD (section "levels" + an XP bar for scroll progress).
+   Hero sits on a live low-poly mesh; galleries loop clips with engine badges, a Godot/Unity filter, and a debug-style viewer.
+   Accent orange comes from the backdrops of the model renders. */
+:root {
+  --bg: #f2f3f5;
+  --surface: #ffffff;
+  --ink: #16181d;
+  --muted: #5c6370;
+  --line: #dde0e6;
+  --accent: #c8470d;
+  --tile: #e7e9ed;
+  --mesh-a: #e2e5ea;
+  --mesh-b: #f3c4a6;
+  --hud: rgba(242, 243, 245, .82);
+  --godot: #3f7fb8;
+  --unity: #3d424c;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111215; --surface: #191b1f; --ink: #eceef2; --muted: #9aa1ad; --line: #2a2d33; --accent: #ff8a3d; --tile: #1f2226;
+    --mesh-a: #17191d; --mesh-b: #4a2a18; --hud: rgba(17, 18, 21, .8); --godot: #6fa8dc; --unity: #c9ced8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111215; --surface: #191b1f; --ink: #eceef2; --muted: #9aa1ad; --line: #2a2d33; --accent: #ff8a3d; --tile: #1f2226;
+  --mesh-a: #17191d; --mesh-b: #4a2a18; --hud: rgba(17, 18, 21, .8); --godot: #6fa8dc; --unity: #c9ced8;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16.5px;
+  line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 72px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+a { color: var(--accent); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.mono { font-family: var(--font-mono); font-size: 12.5px; letter-spacing: .02em; color: var(--muted); }
+
+/* HUD */
+.hud {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9;
+  margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))) calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--hud); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.hud-in { max-width: 1120px; margin: 0 auto; display: flex; align-items: center; gap: 10px 22px; padding-block: 10px; flex-wrap: wrap; }
+.brand { font: 800 15px var(--font-display); color: var(--ink); text-decoration: none; letter-spacing: .02em; }
+.brand b { color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) { .brand b { animation: blink 1.1s steps(1) infinite; } }
+@keyframes blink { 50% { opacity: 0; } }
+.hud nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.hud nav a { font: 500 12.5px var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); text-decoration: none; padding: 5px 8px; border-radius: 6px; }
+.hud nav a:hover { color: var(--ink); background: var(--tile); }
+.hud nav a[aria-current="true"] { color: var(--ink); background: var(--tile); }
+.hud nav a[aria-current="true"]::before { content: "▸ "; color: var(--accent); }
+.lvl { margin-left: auto; white-space: nowrap; font-size: 12px; }
+.lvl b { color: var(--ink); font-weight: 600; }
+.xp { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: transparent; }
+.xp i { display: block; height: 100%; width: calc(var(--xp, 0) * 100%); background: var(--accent); }
+
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 72px; }
+
+/* Hero */
+.hero { position: relative; padding-block: 56px 40px; isolation: isolate; }
+.hero canvas {
+  position: absolute; z-index: -1; top: 0; bottom: 0; width: 100%; height: 100%; left: 0;
+  -webkit-mask-image: radial-gradient(ellipse 70% 95% at 76% 42%, #000 0%, rgba(0,0,0,.6) 45%, transparent 100%);
+          mask-image: radial-gradient(ellipse 70% 95% at 76% 42%, #000 0%, rgba(0,0,0,.6) 45%, transparent 100%);
+  pointer-events: none;
+}
+.intro { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 32px 48px; align-items: end; }
+.boot { margin: 0 0 14px; min-height: 1.2em; }
+.boot .caret { display: inline-block; width: .6em; height: 1em; background: var(--accent); vertical-align: -2px; margin-left: 2px; }
+@media (prefers-reduced-motion: no-preference) { .boot .caret { animation: blink 1s steps(1) infinite; } }
+h1 {
+  font-family: var(--font-display); font-weight: 800; letter-spacing: -.025em;
+  font-size: clamp(42px, 7.4vw, 82px); line-height: .96; margin: 0 0 14px; text-wrap: balance;
+}
+.headline { font-family: var(--font-display); font-weight: 600; font-size: clamp(19px, 2.3vw, 24px); margin: 0 0 18px; color: var(--accent); }
+.lede { margin: 0; max-width: 58ch; }
+.contact {
+  display: grid; gap: 14px; padding: 18px 20px; border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 84%, transparent); border: 1px solid var(--line);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.contact .row { display: grid; gap: 2px; min-width: 0; }
+.contact .label { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.email { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.email span { user-select: all; overflow-wrap: anywhere; }
+.btn {
+  font: 500 12px var(--font-mono); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+
+/* Sections */
+section { display: grid; gap: 22px; scroll-margin-top: 72px; }
+.sechead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.sechead .t { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(24px, 3vw, 30px); letter-spacing: -.01em; margin: 0; }
+.sechead p { margin: 0; color: var(--muted); max-width: 60ch; }
+.stage { font: 600 11px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+
+/* Work cards */
+.work { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.job { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 8px; align-content: start; position: relative; overflow: hidden; }
+.job::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--accent); transform: scaleY(0); transform-origin: top; transition: transform .35s ease; }
+.job:hover::before { transform: scaleY(1); }
+.job .top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; align-items: baseline; }
+.job h3 { font-family: var(--font-display); font-weight: 600; font-size: 19px; margin: 0; }
+.job .role { margin: 0; color: var(--muted); font-size: 14.5px; }
+.job p.desc { margin: 0; }
+.earlier { margin: 0; color: var(--muted); }
+
+/* Filter tabs */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button {
+  font: 600 12px var(--font-mono); text-transform: uppercase; letter-spacing: .07em;
+  background: var(--surface); color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.tabs button .n { color: var(--muted); font-weight: 500; }
+.tabs button[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
+.tabs button[aria-pressed="true"]::before { content: "▸"; color: var(--accent); }
+.dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex: none; }
+.dot.godot { background: var(--godot); }
+.dot.unity { background: var(--unity); }
+
+/* Galleries */
+.grid { display: grid; gap: 16px; }
+.grid.protos { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.grid.models { grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); }
+.tile { display: grid; gap: 9px; text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: zoom-in; min-width: 0; }
+.frame {
+  --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 50%;
+  position: relative; border-radius: 10px; overflow: hidden; background: var(--tile); aspect-ratio: 16 / 10;
+  transform: perspective(800px) rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform .18s ease-out, box-shadow .2s;
+}
+.models .frame { aspect-ratio: 1 / 1; }
+.frame video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+.models .frame video { object-fit: cover; }
+.frame::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .2s;
+  background: radial-gradient(420px circle at var(--mx) var(--my), rgba(255,255,255,.22), transparent 45%);
+}
+.tile:hover .frame, .tile:focus-visible .frame { box-shadow: 0 0 0 2px var(--accent), 0 14px 30px -18px rgba(0,0,0,.55); }
+.tile:hover .frame::after { opacity: 1; }
+/* corner brackets, like a selection box in an editor */
+.frame .sel { position: absolute; inset: 8px; pointer-events: none; opacity: 0; transition: opacity .2s, inset .2s; }
+.frame .sel::before, .frame .sel::after { content: ""; position: absolute; width: 14px; height: 14px; border: 2px solid var(--accent); }
+.frame .sel::before { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+.frame .sel::after { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+.tile:hover .frame .sel, .tile:focus-visible .frame .sel { opacity: 1; inset: 6px; }
+.badge {
+  position: absolute; top: 8px; left: 8px; z-index: 1;
+  font: 600 10.5px var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+  color: #fff; background: rgba(12, 13, 16, .72); border-radius: 4px; padding: 3px 7px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.badge .dot.unity { background: #d7dbe3; }
+.badge .dot.godot { background: #7db4e6; }
+.cap { display: grid; gap: 1px; min-width: 0; }
+.cap strong { font-weight: 700; }
+.cap span { color: var(--muted); font-size: 14.5px; }
+.cap .mono { font-size: 11.5px; }
+.tile.gone { display: none; }
+
+/* Scroll reveal: always visible at rest, only eases into place */
+.reveal { opacity: .45; transform: translateY(18px); }
+.reveal.in { opacity: 1; transform: none; transition: opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1); }
+
+footer { border-top: 1px solid var(--line); padding-top: 18px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; color: var(--muted); font-size: 14.5px; }
+footer .mono { font-size: 11.5px; }
+
+/* Viewer (lightbox) */
+.lb { position: fixed; inset: 0; z-index: 20; background: rgba(6, 7, 9, .9); display: grid; place-items: center; overflow: auto;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.lb figure { margin: 0; width: min(1000px, 100%); display: grid; gap: 12px; }
+.lb .screen { position: relative; border-radius: 10px; overflow: hidden; background: #000; }
+.lb video { width: 100%; max-height: 70vh; display: block; }
+.lb .scan { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px); }
+.lb .dbg {
+  position: absolute; top: 10px; left: 10px; font: 500 11.5px/1.5 var(--font-mono); color: #d9f99d;
+  background: rgba(0,0,0,.62); border: 1px solid rgba(217,249,157,.25); border-radius: 6px; padding: 7px 10px; white-space: pre; pointer-events: none;
+}
+.lb figcaption { color: #f1f2f4; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 20px; }
+.lb figcaption span { color: #b9bec8; }
+.lb .ctrls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lb .ctrls .btn { background: #1d1f24; color: #f1f2f4; border-color: #3a3d44; }
+.lb .hint { font: 400 11.5px var(--font-mono); color: #8d93a0; margin-left: auto; }
+.lb .close { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); background: #1d1f24; color: #f1f2f4; border-color: #3a3d44; }
+@media (max-width: 640px) { .lb .hint { display: none; } }
+
+/* Debug view (Konami code) */
+body.debug main *:not(video):not(canvas) { outline: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: -1px; }
+.fps {
+  position: fixed; z-index: 15; left: calc(12px + env(safe-area-inset-left, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  font: 600 12px var(--font-mono); color: #d9f99d; background: rgba(0,0,0,.75); border-radius: 6px; padding: 6px 10px; white-space: pre;
+}
+.toast {
+  position: fixed; z-index: 30; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  font: 500 13px var(--font-mono); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; max-width: calc(100% - 32px);
+}
+
+@media (max-width: 760px) {
+  .hero { padding-block: 36px 28px; }
+  .wrap { gap: 56px; }
+  .intro { grid-template-columns: 1fr; }
+  .lvl { display: none; }
+  .hero canvas { -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 18%, #000 0%, rgba(0,0,0,.35) 60%, transparent 100%); mask-image: radial-gradient(ellipse 90% 60% at 50% 18%, #000 0%, rgba(0,0,0,.35) 60%, transparent 100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .frame, .job::before, .reveal.in { transition: none; }
+}
+</style>
+
+<div class="hud" id="hud">
+  <div class="hud-in">
+    <a class="brand" href="#top">EM<b>_</b></a>
+    <nav aria-label="Sections">
+      <a href="#work" data-sec="work">Work</a>
+      <a href="#prototypes" data-sec="prototypes">Prototypes</a>
+      <a href="#models" data-sec="models">Models</a>
+    </nav>
+    <span class="lvl mono" id="lvl"><b>LV 0</b> · Title screen</span>
+  </div>
+  <div class="xp" aria-hidden="true"><i id="xpbar"></i></div>
+</div>
+
+<main class="wrap" id="top">
+  <header class="hero" id="hero">
+    <canvas id="mesh" aria-hidden="true"></canvas>
+    <div class="intro">
+      <div>
+        <p class="mono boot" id="boot" aria-hidden="true">&gt; loading portfolio…<span class="caret"></span></p>
+        <h1>Emanuel Martinez</h1>
+        <p class="headline">Game developer and QA engineer</p>
+        <p class="lede">I've worked in games for over a decade: building features in Unity and Unreal, testing them, and setting up the pipelines that ship them. Below are prototypes and models I've made, next to the professional work they sit beside.</p>
+      </div>
+      <div class="contact">
+        <div class="row">
+          <span class="label">Email</span>
+          <div class="email"><span id="email">tenhitcombo@gmail.com</span><button class="btn" id="copyBtn" type="button">Copy</button></div>
+        </div>
+        <div class="row">
+          <span class="label">LinkedIn</span>
+          <a href="https://www.linkedin.com/in/emanuel-m-80118760" target="_blank" rel="noopener noreferrer">linkedin.com/in/emanuel-m-80118760</a>
+        </div>
+        <div class="row">
+          <span class="label">Tools</span>
+          <span>Godot, Unity, Unreal · C#, C++, Python · GitHub Actions, AWS</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section id="work" aria-labelledby="work-h">
+    <div class="sechead">
+      <div class="t"><span class="stage">Level 1</span><h2 id="work-h">Professional work</h2></div>
+      <p>Studios and teams I've built and tested for.</p>
+    </div>
+    <div class="work">
+      <article class="job">
+        <div class="top"><h3>Xiphos Partners</h3><span class="mono">2026</span></div>
+        <p class="role">QA Engineer, Build &amp; Release</p>
+        <p class="desc">Built the company's first CI/CD pipeline on GitHub Actions and AWS for a Unity product. Ran Unity Test Runner from the CLI with results on weekly builds, and ranked code by CRAP score to decide what to test next. Saved about $13K in licensing and code-signing costs.</p>
+      </article>
+      <article class="job">
+        <div class="top"><h3>2K Games</h3><span class="mono">2024–2025</span></div>
+        <p class="role">QA automation, Unreal Engine · contract via Apex Systems</p>
+        <p class="desc">C++ and Python validation tools for Unreal builds on PC and console, telemetry validation for 2K's online services, and performance benchmarks for memory, CPU and frame rate.</p>
+      </article>
+      <article class="job">
+        <div class="top"><h3>GameDriver</h3><span class="mono">2023</span></div>
+        <p class="role">Test developer, game automation SDK · contract</p>
+        <p class="desc">Unity test harnesses built on the GameDriver SDK for iOS and Android, plus build-tool debugging for Unreal and Unity.</p>
+      </article>
+      <article class="job">
+        <div class="top"><h3>Downpour Interactive</h3><span class="mono">2020–2021</span></div>
+        <p class="role">VR software engineer · <em>Onward</em></p>
+        <p class="desc">Gameplay features in C# and Unity for the VR tactical shooter <em>Onward</em>. Profiled and fixed hot spots for a 15% runtime performance gain.</p>
+      </article>
+      <article class="job">
+        <div class="top"><h3>Google</h3><span class="mono">2017–2018</span></div>
+        <p class="role">QA, VR creation tools · contract via Q Analysts</p>
+        <p class="desc">QA for Unity-based VR tools, including Google Blocks, which won the 2017 Unity Award for Best Non-game Project. C# test scripts and device test farms.</p>
+      </article>
+    </div>
+    <p class="earlier">Earlier: QA at Vimeo, Flashtalking and High 5 Games.</p>
+  </section>
+
+  <section id="prototypes" aria-labelledby="proto-h">
+    <div class="sechead">
+      <div class="t"><span class="stage">Level 2</span><h2 id="proto-h">Prototypes</h2></div>
+      <p>Small builds and system tests in Godot and Unity. Tap any clip to open it in the viewer.</p>
+    </div>
+    <div class="tabs" id="tabs" role="group" aria-label="Filter prototypes by engine"></div>
+    <div class="grid protos" id="protos"></div>
+  </section>
+
+  <section id="models" aria-labelledby="models-h">
+    <div class="sechead">
+      <div class="t"><span class="stage">Level 3</span><h2 id="models-h">Low-poly models</h2></div>
+      <p>Characters and scenes, modeled and animated.</p>
+    </div>
+    <div class="grid models" id="modelGrid"></div>
+  </section>
+
+  <footer>
+    <span>Emanuel Martinez · Geneva, NY · All clips are my own work.</span>
+    <span class="mono" title="Try it on a keyboard">↑↑↓↓←→←→ B A</span>
+  </footer>
+</main>
+
+<div id="lbHost"></div>
+<div id="fxHost"></div>
+
+<script>
+(function () {
+  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const finePointer = !!(window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // ---------- content ----------
+  const PROTOS = [
+    { slug: "td-cannon", engine: "godot", title: "Tower defense", desc: "Path-following enemies, cannon towers and a gold economy.", len: 5.4 },
+    { slug: "td-hits", engine: "godot", title: "Tower defense: hit feedback", desc: "Projectile impacts and enemy reactions in the same build.", len: 2.9 },
+    { slug: "evolution", engine: "godot", title: "Character evolution", desc: "A test character gaining parts, from a single block to a jet-powered rig.", len: 30.3 },
+    { slug: "ragdoll", engine: "godot", title: "Ragdoll hit", desc: "A character knocked into a ragdoll with a debris burst.", len: 2.3 },
+    { slug: "physics-swarm", engine: "godot", title: "Physics swarm", desc: "Hundreds of rigid bodies spawning and spreading across the floor.", len: 12.9 },
+    { slug: "no-collision", engine: "godot", title: "Collision bug", desc: "Captured while tracking down a body falling through geometry.", len: 4.2 },
+    { slug: "board-game", engine: "unity", title: "Board game", desc: "Pieces moving across a grid board inside an arena.", len: 3.3 },
+    { slug: "hover", engine: "unity", title: "Hover state", desc: "A pickup that reacts as the cursor passes over it.", len: 3.8 },
+    { slug: "line-rendering", engine: "unity", title: "Line tool", desc: "Drawing a line from an object to the cursor.", len: 3.7 }
+  ];
+  const MODELS = [
+    { slug: "blockieman", title: "Self-portrait", desc: "Me, in blocks." },
+    { slug: "blockspocalypse", title: "Wasteland convoy", desc: "Armored buggies on a desert ridge." },
+    { slug: "zombie-wall", title: "Through the wall", desc: "A zombie breaking through a brick wall." },
+    { slug: "listing", title: "Scrap mech", desc: "A walker built from spare parts." },
+    { slug: "niddler", title: "Niddler", desc: "Winged creature, idle turn." },
+    { slug: "pizza-walk", title: "Pizza walk cycle", desc: "A slice with somewhere to be." },
+    { slug: "zombie", title: "Zombie", desc: "Close-up of the same zombie." },
+    { slug: "pug", title: "Pug in a suit", desc: "Dressed for business." },
+    { slug: "spoop", title: "Spoop", desc: "A Halloween reveal." },
+    { slug: "prince", title: "Tiny planet", desc: "A small world and its one flower." },
+    { slug: "young-t", title: "Bust study", desc: "Head and shoulders, turnaround." }
+  ];
+  const ENGINE = { godot: "Godot", unity: "Unity" };
+
+  const tileHTML = (it, kind) => `
+    <button class="tile" type="button" data-kind="${kind}" data-slug="${it.slug}" ${it.engine ? `data-engine="${it.engine}"` : ""} aria-label="Open ${esc(it.title)} in the viewer">
+      <div class="frame">
+        ${it.engine ? `<span class="badge"><i class="dot ${it.engine}"></i>${ENGINE[it.engine]}</span>` : ""}
+        <video muted loop playsinline preload="none" poster="media/${it.slug}.jpg" aria-hidden="true"><source src="media/${it.slug}.mp4" type="video/mp4"></video>
+        <span class="sel"></span>
+      </div>
+      <div class="cap"><strong>${esc(it.title)}</strong><span>${esc(it.desc)}</span>${it.len ? `<span class="mono">loop · ${it.len}s</span>` : ""}</div>
+    </button>`;
+  document.getElementById("protos").innerHTML = PROTOS.map(p => tileHTML(p, "proto")).join("");
+  document.getElementById("modelGrid").innerHTML = MODELS.map(m => tileHTML(m, "model")).join("");
+
+  // ---------- engine filter (with FLIP animation) ----------
+  const counts = { all: PROTOS.length, godot: PROTOS.filter(p => p.engine === "godot").length, unity: PROTOS.filter(p => p.engine === "unity").length };
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = [["all", "All"], ["godot", "Godot"], ["unity", "Unity"]].map(([k, label]) =>
+    `<button type="button" data-f="${k}" aria-pressed="${k === "all"}">${k !== "all" ? `<i class="dot ${k}"></i>` : ""}${label} <span class="n">${counts[k]}</span></button>`).join("");
+  tabs.addEventListener("click", e => {
+    const b = e.target.closest("button[data-f]"); if (!b) return;
+    const f = b.dataset.f;
+    tabs.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    const tiles = Array.from(document.querySelectorAll("#protos .tile"));
+    const before = new Map(tiles.filter(t => !t.classList.contains("gone")).map(t => [t, t.getBoundingClientRect()]));
+    tiles.forEach(t => t.classList.toggle("gone", f !== "all" && t.dataset.engine !== f));
+    if (reduce) return;
+    tiles.filter(t => !t.classList.contains("gone")).forEach(t => {
+      const a = t.getBoundingClientRect(), p = before.get(t);
+      if (p) {
+        const dx = p.left - a.left, dy = p.top - a.top;
+        if (dx || dy) t.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 380, easing: "cubic-bezier(.2,.7,.2,1)" });
+      } else {
+        t.animate([{ opacity: 0, transform: "scale(.94)" }, { opacity: 1, transform: "none" }], { duration: 320, easing: "ease-out" });
+      }
+    });
+  });
+
+  // ---------- clips play only while visible ----------
+  const tryPlay = v => { const p = v.play(); if (p && p.catch) p.catch(() => {}); };
+  const tileVids = Array.from(document.querySelectorAll(".tile video"));
+  if (!reduce && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver(entries => entries.forEach(e => {
+      const v = e.target; if (e.isIntersecting) { v.preload = "auto"; tryPlay(v); } else v.pause();
+    }), { rootMargin: "150px 0px", threshold: 0.12 });
+    tileVids.forEach(v => io.observe(v));
+  } else {
+    document.querySelectorAll(".tile").forEach(t => {
+      const v = t.querySelector("video");
+      t.addEventListener("mouseenter", () => tryPlay(v));
+      t.addEventListener("mouseleave", () => v.pause());
+    });
+  }
+
+  // ---------- tilt + sheen on hover ----------
+  if (finePointer && !reduce) {
+    document.querySelectorAll(".tile .frame").forEach(fr => {
+      fr.addEventListener("pointermove", e => {
+        const r = fr.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+        fr.style.setProperty("--ry", ((x - .5) * 9).toFixed(2) + "deg");
+        fr.style.setProperty("--rx", ((.5 - y) * 7).toFixed(2) + "deg");
+        fr.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
+        fr.style.setProperty("--my", (y * 100).toFixed(1) + "%");
+      });
+      fr.addEventListener("pointerleave", () => { fr.style.setProperty("--rx", "0deg"); fr.style.setProperty("--ry", "0deg"); });
+    });
+  }
+
+  // ---------- scroll reveal (below the fold only; never hidden at rest) ----------
+  if (!reduce && "IntersectionObserver" in window) {
+    const els = Array.from(document.querySelectorAll(".job, .tile, .sechead, .earlier"));
+    const vh = window.innerHeight;
+    const ro = new IntersectionObserver(entries => entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add("in"); ro.unobserve(e.target); }
+    }), { threshold: 0.08 });
+    els.forEach((el, i) => {
+      if (el.getBoundingClientRect().top > vh * 0.92) {
+        el.classList.add("reveal");
+        el.style.transitionDelay = ((i % 4) * 60) + "ms";
+        ro.observe(el);
+      }
+    });
+  }
+
+  // ---------- HUD: section levels + XP bar ----------
+  const xpbar = document.getElementById("xpbar"), lvl = document.getElementById("lvl");
+  const secs = [["hero", 0, "Title screen"], ["work", 1, "Professional work"], ["prototypes", 2, "Prototypes"], ["models", 3, "Low-poly models"]]
+    .map(([id, n, name]) => ({ el: document.getElementById(id), n, name, id }));
+  const links = Array.from(document.querySelectorAll(".hud nav a"));
+  let ticking = false, lastLvl = -1;
+  function onScroll() {
+    ticking = false;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    xpbar.parentElement.style.setProperty("--xp", p.toFixed(4));
+    let cur = secs[0];
+    for (const s of secs) if (s.el && s.el.getBoundingClientRect().top < window.innerHeight * 0.4) cur = s;
+    if (p > 0.995) cur = secs[secs.length - 1];
+    if (cur.n !== lastLvl) {
+      lastLvl = cur.n;
+      lvl.innerHTML = `<b>LV ${cur.n}</b> · ${cur.name} · ${Math.round(p * 100)}% XP`;
+      links.forEach(a => a.setAttribute("aria-current", String(a.dataset.sec === cur.id)));
+    } else {
+      lvl.innerHTML = `<b>LV ${cur.n}</b> · ${cur.name} · ${Math.round(p * 100)}% XP`;
+    }
+  }
+  window.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  window.addEventListener("resize", () => requestAnimationFrame(onScroll));
+  onScroll();
+
+  // ---------- boot line ----------
+  const boot = document.getElementById("boot");
+  const bootLines = ["> loading portfolio…", "> 9 prototypes · 11 models · 5 studios", "> ready."];
+  if (!reduce) {
+    let li = 0;
+    const next = () => {
+      const text = bootLines[li]; let i = 0;
+      const typer = setInterval(() => {
+        i++; boot.innerHTML = esc(text.slice(0, i)) + '<span class="caret"></span>';
+        if (i >= text.length) { clearInterval(typer); li++; if (li < bootLines.length) setTimeout(next, 650); }
+      }, 28);
+    };
+    setTimeout(next, 250);
+  } else {
+    boot.innerHTML = esc(bootLines[2]) + '<span class="caret"></span>';
+  }
+
+  // ---------- low-poly mesh behind the hero ----------
+  (function mesh() {
+    const cv = document.getElementById("mesh"), hero = document.getElementById("hero");
+    if (!cv || !cv.getContext) return;
+    const ctx = cv.getContext("2d");
+    let W = 0, H = 0, pts = [], cols = 0, rows = 0, cA = [226, 229, 234], cB = [243, 196, 166], visible = true, raf = 0;
+    const pointer = { x: -9999, y: -9999, tx: -9999, ty: -9999 };
+    const hex = h => { h = h.trim().replace("#", ""); if (h.length === 3) h = h.split("").map(c => c + c).join(""); const n = parseInt(h, 16); return isNaN(n) ? null : [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+    function readColors() {
+      const cs = getComputedStyle(document.documentElement);
+      cA = hex(cs.getPropertyValue("--mesh-a")) || cA; cB = hex(cs.getPropertyValue("--mesh-b")) || cB;
+    }
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    function build() {
+      const r = hero.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = Math.max(1, r.width); H = Math.max(1, r.height);
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const step = W < 600 ? 54 : 70; cols = Math.ceil(W / step) + 2; rows = Math.ceil(H / step) + 2; seed = 7; pts = [];
+      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++)
+        pts.push({ x: (i - .5) * step + (rnd() - .5) * step * .55, y: (j - .5) * step + (rnd() - .5) * step * .55, ph: rnd() * 6.28 });
+    }
+    function draw(t) {
+      ctx.clearRect(0, 0, W, H);
+      pointer.x += (pointer.tx - pointer.x) * .08; pointer.y += (pointer.ty - pointer.y) * .08;
+      const z = pts.map(p => {
+        let h = Math.sin(p.x * .011 + t * .55 + p.ph * .3) * Math.cos(p.y * .014 - t * .4) * 22;
+        const dx = p.x - pointer.x, dy = p.y - pointer.y, d2 = dx * dx + dy * dy;
+        h += 46 * Math.exp(-d2 / 16000);
+        return h;
+      });
+      const L = [-.45, -.6, .66]; const ln = Math.hypot(...L); L[0] /= ln; L[1] /= ln; L[2] /= ln;
+      const tri = (a, b, c) => {
+        const A = pts[a], B = pts[b], C = pts[c];
+        const ux = B.x - A.x, uy = B.y - A.y, uz = z[b] - z[a], vx = C.x - A.x, vy = C.y - A.y, vz = z[c] - z[a];
+        let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const nl = Math.hypot(nx, ny, nz) || 1;
+        nx /= nl; ny /= nl; nz /= nl; if (nz < 0) { nx = -nx; ny = -ny; nz = -nz; }
+        let s = nx * L[0] + ny * L[1] + nz * L[2]; s = Math.max(0, Math.min(1, (s - .55) * 2.6));
+        const col = `rgb(${Math.round(cA[0] + (cB[0] - cA[0]) * s)},${Math.round(cA[1] + (cB[1] - cA[1]) * s)},${Math.round(cA[2] + (cB[2] - cA[2]) * s)})`;
+        ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.lineTo(C.x, C.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+      };
+      for (let j = 0; j < rows - 1; j++) for (let i = 0; i < cols - 1; i++) {
+        const a = j * cols + i, b = a + 1, c = a + cols, d = c + 1;
+        if ((i + j) % 2) { tri(a, b, d); tri(a, d, c); } else { tri(a, b, c); tri(b, d, c); }
+      }
+    }
+    let last = 0;
+    function loop(ts) {
+      raf = 0;
+      if (!visible || document.hidden) return;
+      if (ts - last > 33) { last = ts; draw(ts / 1000); }
+      raf = requestAnimationFrame(loop);
+    }
+    const start = () => { if (!raf && !reduce) raf = requestAnimationFrame(loop); };
+    readColors(); build(); draw(0); start();
+    if ("ResizeObserver" in window) new ResizeObserver(() => { build(); draw(performance.now() / 1000); }).observe(hero);
+    if ("IntersectionObserver" in window) new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible) start(); }).observe(hero);
+    document.addEventListener("visibilitychange", start);
+    if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => { readColors(); draw(performance.now() / 1000); });
+    new MutationObserver(() => { readColors(); draw(performance.now() / 1000); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    if (finePointer) {
+      hero.addEventListener("pointermove", e => { const r = hero.getBoundingClientRect(); pointer.tx = e.clientX - r.left; pointer.ty = e.clientY - r.top; if (pointer.x < -9000) { pointer.x = pointer.tx; pointer.y = pointer.ty; } });
+      hero.addEventListener("pointerleave", () => { pointer.tx = -9999; pointer.ty = -9999; });
+    }
+  })();
+
+  // ---------- viewer with a debug overlay ----------
+  const host = document.getElementById("lbHost");
+  let list = [], idx = 0, lastTile = null, vfRaf = 0;
+  const fmt = s => (s < 10 ? "0" : "") + s.toFixed(2);
+  function itemFor(tile) {
+    const src = tile.dataset.kind === "proto" ? PROTOS : MODELS;
+    return src.find(x => x.slug === tile.dataset.slug);
+  }
+  function openViewer(tile) {
+    lastTile = tile;
+    list = Array.from(tile.closest(".grid").querySelectorAll(".tile:not(.gone)"));
+    idx = Math.max(0, list.indexOf(tile));
+    host.innerHTML = `<div class="lb" role="dialog" aria-modal="true" aria-label="Clip viewer">
+      <button class="btn close" type="button" data-act="close">Close · Esc</button>
+      <figure>
+        <div class="screen"><video muted loop playsinline ${reduce ? "controls" : ""}></video><div class="scan"></div><div class="dbg" id="dbg"></div></div>
+        <figcaption><strong id="lbTitle"></strong><span id="lbDesc"></span></figcaption>
+        <div class="ctrls">
+          <button class="btn" type="button" data-act="prev">◀ Prev</button>
+          <button class="btn" type="button" data-act="pause" id="pauseBtn">❚❚ Pause</button>
+          <button class="btn" type="button" data-act="next">Next ▶</button>
+          <span class="hint">space pause · , . step frame · ← → switch clip · esc close</span>
+        </div>
+      </figure>
+    </div>`;
+    load();
+    host.querySelector('[data-act="close"]').focus();
+    tickDbg();
+  }
+  function load() {
+    const it = itemFor(list[idx]), v = host.querySelector("video");
+    v.poster = `media/${it.slug}.jpg`; v.src = `media/${it.slug}.mp4`;
+    v.onloadedmetadata = () => { const fig = host.querySelector("figure"); if (fig && v.videoWidth) fig.style.width = `min(1000px, 100%, ${Math.round(v.videoWidth * 1.6)}px)`; };
+    document.getElementById("lbTitle").textContent = it.title;
+    document.getElementById("lbDesc").textContent = it.desc;
+    host.dataset.slug = it.slug; host.dataset.engine = it.engine ? ENGINE[it.engine] : "Model";
+    if (!reduce) tryPlay(v);
+    setPauseLabel();
+  }
+  function setPauseLabel() { const v = host.querySelector("video"), b = document.getElementById("pauseBtn"); if (v && b) b.textContent = v.paused ? "▶ Play" : "❚❚ Pause"; }
+  function tickDbg() {
+    const v = host.querySelector("video"), d = document.getElementById("dbg");
+    if (!v || !d) { vfRaf = 0; return; }
+    const dur = isFinite(v.duration) ? v.duration : 0, t = v.currentTime || 0;
+    d.textContent = `${host.dataset.slug}.mp4\n${host.dataset.engine} · ${v.videoWidth || "?"}×${v.videoHeight || "?"}\nt ${fmt(t)} / ${fmt(dur)}\nframe ${String(Math.floor(t * 30)).padStart(3, "0")}  ${v.paused ? "PAUSED" : "PLAYING"}`;
+    vfRaf = requestAnimationFrame(tickDbg);
+  }
+  function closeViewer() { cancelAnimationFrame(vfRaf); vfRaf = 0; host.innerHTML = ""; if (lastTile) lastTile.focus(); }
+  function step(n) { idx = (idx + n + list.length) % list.length; load(); }
+  function togglePause() { const v = host.querySelector("video"); if (!v) return; if (v.paused) tryPlay(v); else v.pause(); setTimeout(setPauseLabel, 0); }
+  function frameStep(dir) { const v = host.querySelector("video"); if (!v) return; v.pause(); v.currentTime = Math.max(0, Math.min((v.duration || 0) - 0.001, v.currentTime + dir / 30)); setPauseLabel(); }
+  document.querySelectorAll(".tile").forEach(t => t.addEventListener("click", () => openViewer(t)));
+  host.addEventListener("click", e => {
+    const a = e.target.closest("[data-act]");
+    if (a) { const act = a.dataset.act; if (act === "close") closeViewer(); else if (act === "prev") step(-1); else if (act === "next") step(1); else if (act === "pause") togglePause(); return; }
+    if (e.target.classList.contains("lb")) closeViewer();
+  });
+
+  // ---------- keyboard: viewer controls + Konami debug view ----------
+  const KONAMI = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
+  let kpos = 0;
+  document.addEventListener("keydown", e => {
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    kpos = (k === KONAMI[kpos]) ? kpos + 1 : (k === KONAMI[0] ? 1 : 0);
+    if (kpos === KONAMI.length) { kpos = 0; toggleDebug(); return; }
+    if (!host.innerHTML) return;
+    if (k === "Escape") closeViewer();
+    else if (k === "ArrowRight") step(1);
+    else if (k === "ArrowLeft") step(-1);
+    else if (k === " ") { e.preventDefault(); togglePause(); }
+    else if (k === ".") frameStep(1);
+    else if (k === ",") frameStep(-1);
+  });
+
+  const fx = document.getElementById("fxHost");
+  let fpsRaf = 0;
+  function toast(msg) {
+    const el = document.createElement("div"); el.className = "toast"; el.setAttribute("role", "status"); el.textContent = msg;
+    fx.appendChild(el); setTimeout(() => el.remove(), 2200);
+  }
+  function toggleDebug() {
+    const on = document.body.classList.toggle("debug");
+    toast(on ? "Debug view on. Enter the code again to turn it off." : "Debug view off.");
+    const old = document.getElementById("fps"); if (old) old.remove(); cancelAnimationFrame(fpsRaf);
+    if (!on) return;
+    const m = document.createElement("div"); m.className = "fps"; m.id = "fps"; fx.appendChild(m);
+    let frames = 0, t0 = performance.now();
+    const loop = now => {
+      frames++;
+      if (now - t0 >= 500) {
+        const fps = Math.round(frames * 1000 / (now - t0)); frames = 0; t0 = now;
+        const playing = Array.from(document.querySelectorAll("video")).filter(v => !v.paused).length;
+        m.textContent = `FPS ${fps}\nclips playing ${playing}\nscroll ${Math.round(window.scrollY)}px`;
+      }
+      fpsRaf = requestAnimationFrame(loop);
+    };
+    fpsRaf = requestAnimationFrame(loop);
+  }
+
+  // ---------- copy email ----------
+  const btn = document.getElementById("copyBtn");
+  btn.addEventListener("click", () => {
+    const text = document.getElementById("email").textContent;
+    const done = () => { btn.textContent = "Copied"; setTimeout(() => { btn.textContent = "Copy"; }, 1800); };
+    const fallback = () => { const r = document.createRange(); r.selectNodeContents(document.getElementById("email")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = "Selected"; setTimeout(() => { btn.textContent = "Copy"; }, 1800); };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (_) { fallback(); }
+  });
+})();
+</script>
+
+</body></html>
